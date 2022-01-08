@@ -1,0 +1,36 @@
+#!/bin/bash
+#recall that bash is "whitespace sensitive"
+
+printf "xsetwacom helper script | zin0vka\n\n"
+printf "\033[1;36mInfo:\033[0m Requires 'xf86-input-wacom'.\n"
+#for monitor selection
+output=$(xrandr --listactivemonitors)
+lastwords=$(echo "$output" | awk 'NF>1{print $NF}')
+displays=($lastwords)
+let len=${#displays[@]}
+let last_ind=$len-1
+printf "Available monitors:\n\n"
+for i in `seq 1 $last_ind`
+do
+  printf "${displays[i]} ("$i") "
+done
+printf "\n\nSelect a number (1 to $last_ind): "
+read monitor_choice_index
+monitor_choice=${displays[$monitor_choice_index]}
+printf "\n\033[1;36mInfo:\033[0m Will now attempt to map all Wacom devices to $monitor_choice.\n"
+
+#for getting all the wacom devices
+wac_out=$(xsetwacom --list devices)
+#match until and including id
+#split on id using awk
+#remove trailing whitespace with sed
+wac_dev_unlist=$(echo "$wac_out" | grep -o  '.*id' | awk -F 'id' '{print $1}' | sed 's/[ \t]*$//')
+#split on newlines into bash_array
+readarray -t wac_dev <<<"$wac_dev_unlist"
+let len=${#wac_dev[@]}
+let last_ind=$len-1
+for i in `seq 0 $last_ind`
+do
+  xsetwacom set "${wac_dev[i]}" MapToOutput $monitor_choice
+  printf "\033[1;35mEvent:\033[0m Mapped '${wac_dev[i]}' to $monitor_choice.\n"
+done
